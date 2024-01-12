@@ -4,8 +4,14 @@ use std::fmt;
 /// amareleo-chain custom errors
 #[derive(Debug, PartialEq)]
 pub enum ChainErrors {
+    /// Cannot find Home Dir
+    NoHomeDir,
+
+    /// snarkos was not started.
+    ProcessNotRunning,
+
     /// Cannot get stdout stream for process
-    NoProcessStdout,
+    NoStdout,
 
     /// Cannot find process ready phrase
     CannotFindReady,

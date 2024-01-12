@@ -11,41 +11,39 @@ use std::time::{Duration, Instant};
 use chain_errors::ChainErrors;
 use homedir::get_my_home;
 
-const NODE0_START_COMPLETE: &str = "INFO No connected validators";
-const NODE1_START_COMPLETE: &str = "INFO No connected validators";
-// const NODE2_START_COMPLETE: &str = "INFO No connected validators";
-// const NODE3_START_COMPLETE: &str = "INFO No connected validators";
-
-// snarkos supports --dev-num-validators parameter
-// however this cannot be less than 4
-const NODEO_ARG: [&str; 5] = ["start", "--nodisplay", "--dev", "0", "--validator"];
-
-const NODE1_ARG: [&str; 6] = [
-    "start",
-    "--nodisplay",
-    "--dev",
-    "1",
-    "--validator",
-    "--norest",
-];
+const NODE0_START_COMPLETE: &str = "No connected validators";
+const NODE1_START_COMPLETE: &str = "Connected to 1 validators";
+const NODE2_START_COMPLETE: &str = "Connected to 2 validators";
+const NODE3_START_COMPLETE: &str = "Advanced to block";
 
 pub struct SnarkNode {
     //Child process handle
     name: String,
-    process: Child,
+    ready_phrase: String,
+    process: Option<Child>,
     stdout_reader: Option<BufReader<ChildStdout>>,
     stdout_thread: Option<JoinHandle<()>>,
     stdout_silent: Arc<Mutex<bool>>,
 }
 
 impl SnarkNode {
-    pub fn new(
-        name: &str,
+    pub fn new(name: &str, ready: &str) -> SnarkNode {
+        SnarkNode {
+            name: name.to_string(),
+            ready_phrase: ready.to_string(),
+            process: None,
+            stdout_reader: None,
+            stdout_thread: None,
+            stdout_silent: Arc::new(Mutex::new(true)),
+        }
+    }
+
+    fn start_process(
+        &mut self,
         start_path: &PathBuf,
-        params: Vec<&str>,
+        params: Vec<String>,
         time_limit_secs: u64,
-        ready_phrase: &str,
-    ) -> anyhow::Result<SnarkNode> {
+    ) -> anyhow::Result<()> {
         let start_time = Instant::now();
 
         let mut snarkos = Command::new("snarkos")
@@ -54,18 +52,21 @@ impl SnarkNode {
             .current_dir(start_path)
             .spawn()?;
 
-        let mut ready: bool = false;
-        let ready_pharse_low = ready_phrase.to_ascii_lowercase();
-
         // Get a handle to the stdout of the spawned process
-        let stdout = snarkos
-            .stdout
-            .take()
-            .ok_or::<ChainErrors>(ChainErrors::NoProcessStdout)?;
+        let stdout_opt: Option<ChildStdout> = snarkos.stdout.take();
+        let stdout: ChildStdout = match stdout_opt {
+            None => {
+                snarkos.kill()?;
+                println!("{} killed", &self.name);
+                return Err(ChainErrors::NoStdout.into());
+            }
+            Some(stream) => stream,
+        };
 
-        // Create a buffered reader to read lines from stdout
-        let mut reader = BufReader::new(stdout);
+        let mut ready: bool = false;
         let mut line = String::new();
+        let mut reader = BufReader::new(stdout);
+        let ready_pharse_low = self.ready_phrase.to_ascii_lowercase();
 
         // Print each line from stdout to the console...
         // ...and check if it contains the key phrase we are looking for.
@@ -90,19 +91,17 @@ impl SnarkNode {
 
         if !ready {
             snarkos.kill()?;
+            println!("{} killed", &self.name);
             return Err(ChainErrors::CannotFindReady.into());
         }
 
-        Ok(SnarkNode {
-            name: name.to_string(),
-            process: snarkos,
-            stdout_reader: Some(reader),
-            stdout_thread: None,
-            stdout_silent: Arc::new(Mutex::new(true)),
-        })
+        self.process = Some(snarkos);
+        self.stdout_reader = Some(reader);
+
+        Ok(())
     }
 
-    pub fn consume_stdout(&mut self) -> anyhow::Result<()> {
+    fn consume_stdout(&mut self) -> anyhow::Result<()> {
         // Clone the Arc for the thread
         let shared_stdout_silent = Arc::clone(&self.stdout_silent);
 
@@ -110,21 +109,33 @@ impl SnarkNode {
         let reader = self
             .stdout_reader
             .take()
-            .ok_or::<ChainErrors>(ChainErrors::NoProcessStdout)?;
+            .ok_or::<ChainErrors>(ChainErrors::NoStdout)?;
+
+        let thread_name = String::from(&self.name);
 
         // Spawn a thread to read from the stdout
         let handle: JoinHandle<()> = thread::spawn(move || {
+            let mut start_time = Instant::now();
+            let mut silent = shared_stdout_silent.lock().expect("Failed to lock Mutex");
+
             for line in reader.lines() {
                 match line {
                     Ok(chunk) => {
-                        // Process each chunk (line) as needed
-                        let silent = shared_stdout_silent.lock().expect("Failed to lock Mutex");
+                        // Update the silent status every 5 seconds to limit
+                        // the amount of locking.
+                        if start_time.elapsed() > Duration::from_secs(5) {
+                            silent = shared_stdout_silent.lock().expect("Failed to lock Mutex");
+                            start_time = Instant::now();
+                        }
+
+                        // Display line if not silent
                         if !(*silent) {
-                            println!("{}", chunk);
+                            println!("{thread_name} | {}", chunk);
                         }
                     }
                     Err(err) => {
-                        eprintln!("Error reading line: {}", err);
+                        eprintln!("{thread_name} | Error reading line: {}", err);
+                        eprintln!("{thread_name} | terminating stdout monitor.");
                         break; // Stop reading on error
                     }
                 }
@@ -135,13 +146,25 @@ impl SnarkNode {
         Ok(())
     }
 
-    pub fn has_stdout_monitor(&self) -> bool {
-        self.stdout_thread.is_some()
+    pub fn start(
+        &mut self,
+        start_path: &PathBuf,
+        params: Vec<String>,
+        time_limit_secs: u64,
+    ) -> anyhow::Result<()> {
+        self.start_process(start_path, params, time_limit_secs)?;
+        self.consume_stdout()
     }
 
     pub fn end(&mut self) -> anyhow::Result<ExitStatus> {
-        // Kill the process after the specified duration
-        let kill_res = self.process.kill();
+        let mut runner;
+
+        match self.process.take() {
+            Some(proc) => runner = proc,
+            None => return Err(ChainErrors::ProcessNotRunning.into()),
+        }
+
+        let kill_res = runner.kill();
         println!("{} killed", &self.name);
 
         if let Some(handle) = self.stdout_thread.take() {
@@ -152,45 +175,70 @@ impl SnarkNode {
         kill_res?;
 
         // Wait for the process to finish and get the exit status
-        let exit_status = self.process.wait()?;
+        let exit_status = runner.wait()?;
         println!("{} exit code {exit_status}", &self.name);
         Ok(exit_status)
     }
+
+    pub fn has_stdout_monitor(&self) -> bool {
+        self.stdout_thread.is_some()
+    }
+}
+
+fn node_args(num: usize) -> Vec<String> {
+    let mut args: Vec<String> = vec![
+        String::from("start"),
+        String::from("--dev"),
+        num.to_string(),
+        String::from("--nodisplay"),
+        String::from("--validator"),
+    ];
+
+    if num != 0 {
+        args.push(String::from("--norest"));
+    }
+
+    args
+}
+
+fn start_batch(nodes: &mut [SnarkNode]) -> anyhow::Result<()> {
+    //Cross-platform compatible retreival of the user's home dir
+    let start_path: PathBuf = match get_my_home()?.take() {
+        None => return Err(ChainErrors::NoHomeDir.into()),
+        Some(path) => path,
+    };
+
+    for (idx, node) in nodes.iter_mut().enumerate() {
+        node.start(&start_path, node_args(idx), 300u64)?;
+    }
+
+    Ok(())
+}
+
+fn end_batch(nodes: &mut [SnarkNode]) -> anyhow::Result<()> {
+    for (_, node) in nodes.iter_mut().enumerate().rev() {
+        let _ = node.end();
+    }
+
+    Ok(())
 }
 
 fn main() {
-    //Cross-platform compatible retreival of the user's home dir
-    let home_dir = get_my_home()
-        .expect("Failed to get home directory")
-        .unwrap();
-    println!("Home dir: {:?}", home_dir);
+    let mut nodes: Vec<SnarkNode> = vec![
+        SnarkNode::new("node0", NODE0_START_COMPLETE),
+        SnarkNode::new("node1", NODE1_START_COMPLETE),
+        SnarkNode::new("node2", NODE2_START_COMPLETE),
+        SnarkNode::new("node3", NODE3_START_COMPLETE),
+    ];
 
-    //Start a snarkos instance
-    let mut node0 = SnarkNode::new(
-        "node0",
-        &home_dir,
-        NODEO_ARG.to_vec(),
-        300u64,
-        NODE0_START_COMPLETE,
-    )
-    .expect("Failed to start node0");
+    let _ = start_batch(&mut nodes);
 
-    let mut node1 = SnarkNode::new(
-        "node1",
-        &home_dir,
-        NODE1_ARG.to_vec(),
-        300u64,
-        NODE1_START_COMPLETE,
-    )
-    .expect("Failed to start node0");
-
-    let _ = node0.consume_stdout();
-    let _ = node1.consume_stdout();
-
-    if node0.has_stdout_monitor() {
+    if nodes[3].has_stdout_monitor() {
+        println!();
+        println!("All nodes started!");
+        println!();
         thread::sleep(Duration::from_secs(60));
     }
 
-    node1.end().expect("Failed to get node1 exit status");
-    node0.end().expect("Failed to get node0 exit status");
+    let _ = end_batch(&mut nodes);
 }

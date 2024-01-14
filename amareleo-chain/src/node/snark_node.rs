@@ -40,7 +40,7 @@ impl SnarkNode {
         let stdout: ChildStdout = match stdout_opt {
             None => {
                 snarkos.kill()?;
-                println!("{} | killed", &self.name);
+                self.report("killed");
                 return Err(ChainErrors::NoStdout.into());
             }
             Some(stream) => stream,
@@ -58,23 +58,23 @@ impl SnarkNode {
             let read_res = reader.read_line(&mut line);
 
             if let Err(error) = read_res {
-                eprintln!("{} | Error reading line: {}", &self.name, error);
+                self.report_err(&format!("Error reading line: {}", error));
                 break;
             } else if line.to_ascii_lowercase().contains(&ready_pharse_low) {
-                print!("{} | {}", &self.name, &line);
+                self.report(&line);
                 ready = true;
                 break;
             } else if start_time.elapsed() > Duration::from_secs(time_limit_secs) {
-                eprintln!("{} | Timeout reading line", &self.name);
+                self.report_err("Timeout reading line");
                 break;
+            } else {
+                self.report(&line);
             }
-
-            print!("{} | {}", &self.name, &line);
         }
 
         if !ready {
             snarkos.kill()?;
-            println!("{} | killed", &self.name);
+            self.report("killed");
             return Err(ChainErrors::CannotFindReady.into());
         }
 
@@ -141,22 +141,30 @@ impl SnarkNode {
         }
 
         let kill_res = runner.kill();
-        println!("{} | killed", &self.name);
+        self.report("killed");
 
         if let Some(handle) = self.stdout_thread.take() {
             let _ = handle.join();
-            println!("{} | monitor stopped", &self.name);
+            self.report("monitor stopped");
         }
 
         kill_res?;
 
         // Wait for the process to finish and get the exit status
         let exit_status = runner.wait()?;
-        println!("{} | exit code {exit_status}", &self.name);
+        self.report(&format!("exit code {exit_status}"));
         Ok(exit_status)
     }
 
     pub fn has_stdout_monitor(&self) -> bool {
         self.stdout_thread.is_some()
+    }
+
+    fn report(&self, line: &str) {
+        println!("{} | {}", &self.name, line.trim_end());
+    }
+
+    fn report_err(&self, line: &str) {
+        eprintln!("{} | {}", &self.name, line.trim_end());
     }
 }

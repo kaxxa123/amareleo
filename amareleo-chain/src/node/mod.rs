@@ -6,7 +6,12 @@ use std::sync::Arc;
 use std::sync::Mutex;
 use std::thread::JoinHandle;
 
-pub struct SnarkNode {
+use crate::console::ConsoleManager;
+
+// SnarkOS process wrapper
+// This object will start, monitor and terminate
+// a single snarkos instance.
+pub struct SnarkNode<'a> {
     // Friendly process name
     name: String,
 
@@ -26,4 +31,7 @@ pub struct SnarkNode {
     // Thread-safe flag for enabling/disabling
     // redirecting stdout to console.
     stdout_silent: Arc<Mutex<bool>>,
+
+    // Thread-safe access to console object
+    console: &'a Arc<Mutex<ConsoleManager>>,
 }

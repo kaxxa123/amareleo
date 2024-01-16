@@ -8,3 +8,4 @@ edition = "2021"
 [dependencies]
 homedir = "0.2.1"
 anyhow = "1"
+crossterm = "0.27.0"

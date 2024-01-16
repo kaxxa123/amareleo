@@ -1,75 +1,59 @@
 mod chain_errors;
+mod console;
 mod node;
+mod node_batch;
 
-use std::path::PathBuf;
-use std::thread;
-use std::time::Duration;
+use std::sync::Arc;
+use std::sync::Mutex;
 
-use homedir::get_my_home;
-
-use chain_errors::ChainErrors;
-
-use node::SnarkNode;
-
-const NODE0_START_COMPLETE: &str = "No connected validators";
-const NODE1_START_COMPLETE: &str = "Connected to 1 validators";
-const NODE2_START_COMPLETE: &str = "Connected to 2 validators";
-const NODE3_START_COMPLETE: &str = "Advanced to block";
-
-fn node_args(num: usize) -> Vec<String> {
-    let mut args: Vec<String> = vec![
-        String::from("start"),
-        String::from("--dev"),
-        num.to_string(),
-        String::from("--nodisplay"),
-        String::from("--validator"),
-    ];
-
-    if num != 0 {
-        args.push(String::from("--norest"));
-    }
-
-    args
-}
-
-fn start_batch(nodes: &mut [SnarkNode]) -> anyhow::Result<()> {
-    //Cross-platform compatible retreival of the user's home dir
-    let start_path: PathBuf = match get_my_home()?.take() {
-        None => return Err(ChainErrors::NoHomeDir.into()),
-        Some(path) => path,
-    };
-
-    for (idx, node) in nodes.iter_mut().enumerate() {
-        node.start(&start_path, node_args(idx), 300u64)?;
-    }
-
-    Ok(())
-}
-
-fn end_batch(nodes: &mut [SnarkNode]) -> anyhow::Result<()> {
-    for (_, node) in nodes.iter_mut().enumerate().rev() {
-        let _ = node.end();
-    }
-
-    Ok(())
-}
+use console::ConsoleManager;
+use crossterm::event::{self, KeyCode};
+use node_batch::NodeSet;
 
 fn main() {
-    let mut nodes: Vec<SnarkNode> = vec![
-        SnarkNode::new("node0", NODE0_START_COMPLETE),
-        SnarkNode::new("node1", NODE1_START_COMPLETE),
-        SnarkNode::new("node2", NODE2_START_COMPLETE),
-        SnarkNode::new("node3", NODE3_START_COMPLETE),
-    ];
+    let base_console = ConsoleManager::start(10);
+    let console = Arc::new(Mutex::new(base_console));
 
-    let _ = start_batch(&mut nodes);
+    let mut nodes = NodeSet::new(&console);
 
-    if nodes[3].has_stdout_monitor() {
-        println!();
-        println!("All nodes started!");
-        println!();
-        thread::sleep(Duration::from_secs(60));
+    let res = nodes.start();
+
+    if res.is_ok() {
+        {
+            let console_a = console.lock();
+            let _ = console_a.map(|mut obj| {
+                obj.report("main", "");
+                obj.report("main", "All nodes started!");
+                obj.report("main", "");
+            });
+        }
+
+        loop {
+            if let Ok(event::Event::Key(key_event)) = event::read() {
+                match key_event.code {
+                    KeyCode::Char('q') => {
+                        let console_a = console.lock();
+                        let _ = console_a.map(|mut obj| obj.report("main", "Quitting..."));
+
+                        break;
+                    }
+
+                    KeyCode::Char('s') => {
+                        {
+                            let console_a = console.lock();
+                            let _ = console_a.map(|mut obj| obj.report("main", "Silent..."));
+                        }
+                        nodes.stdout_silent();
+                    }
+
+                    KeyCode::Char('0') => nodes.stdout_show(0),
+                    KeyCode::Char('1') => nodes.stdout_show(1),
+                    KeyCode::Char('2') => nodes.stdout_show(2),
+                    KeyCode::Char('3') => nodes.stdout_show(3),
+
+                    _ => {}
+                }
+            }
+        }
     }
-
-    let _ = end_batch(&mut nodes);
 }

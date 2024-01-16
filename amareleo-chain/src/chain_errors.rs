@@ -10,6 +10,10 @@ pub enum ChainErrors {
     /// snarkos was not started.
     ProcessNotRunning,
 
+    /// snarkos process was already started.
+    /// call end() before starting again.
+    ProcessAlreadyStarted,
+
     /// Cannot get stdout stream for process
     NoStdout,
 

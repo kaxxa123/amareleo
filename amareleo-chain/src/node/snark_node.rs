@@ -6,11 +6,12 @@ use std::sync::Mutex;
 use std::thread;
 use std::time::{Duration, Instant};
 
-use crate::chain_errors::*;
-use crate::node::*;
+use crate::chain_errors::ChainErrors;
+use crate::console::ConsoleManager;
+use crate::node::SnarkNode;
 
-impl SnarkNode {
-    pub fn new(name: &str, ready: &str) -> SnarkNode {
+impl<'a> SnarkNode<'a> {
+    pub fn new(name: &str, ready: &str, console: &'a Arc<Mutex<ConsoleManager>>) -> SnarkNode<'a> {
         SnarkNode {
             name: name.to_string(),
             ready_phrase: ready.to_string(),
@@ -18,6 +19,7 @@ impl SnarkNode {
             stdout_reader: None,
             stdout_thread: None,
             stdout_silent: Arc::new(Mutex::new(true)),
+            console,
         }
     }
 
@@ -27,6 +29,10 @@ impl SnarkNode {
         params: Vec<String>,
         time_limit_secs: u64,
     ) -> anyhow::Result<()> {
+        if self.process.is_some() {
+            return Err(ChainErrors::ProcessAlreadyStarted.into());
+        }
+
         let start_time = Instant::now();
 
         let mut snarkos = Command::new("snarkos")
@@ -87,6 +93,7 @@ impl SnarkNode {
     fn consume_stdout(&mut self) -> anyhow::Result<()> {
         // Clone the Arc for the thread
         let shared_stdout_silent = Arc::clone(&self.stdout_silent);
+        let shared_console = Arc::clone(self.console);
 
         // Consume the reader
         let reader = self
@@ -97,21 +104,23 @@ impl SnarkNode {
         let thread_name = String::from(&self.name);
 
         // Spawn a thread to read from the stdout
-        let handle: JoinHandle<()> = thread::spawn(move || {
+        let handle = thread::spawn(move || {
             for line in reader.lines() {
                 match line {
                     Ok(chunk) => {
                         // Process each chunk (line) as needed
-                        let silent = shared_stdout_silent.lock().expect("Failed to lock Mutex");
-
-                        // Display line if not silent
-                        if !(*silent) {
-                            println!("{} | {}", &thread_name, chunk);
-                        }
+                        let silent = shared_stdout_silent.lock();
+                        let _ = silent.map(|obj| {
+                            // Display line if not silent
+                            if !(*obj) {
+                                let console = shared_console.lock();
+                                let _ = console.map(|mut obj| obj.report(&thread_name, &chunk));
+                            }
+                        });
                     }
                     Err(err) => {
-                        eprintln!("{} | Error reading line: {}", &thread_name, err);
-                        eprintln!("{} | terminating stdout monitor.", &thread_name);
+                        report_err(&thread_name, &format!("Error reading line: {}", err));
+                        report_err(&thread_name, "terminating stdout monitor.");
                         break; // Stop reading on error
                     }
                 }
@@ -135,6 +144,8 @@ impl SnarkNode {
     pub fn end(&mut self) -> anyhow::Result<ExitStatus> {
         let mut runner;
 
+        // Get process and set it to None to block freeing it twice.
+        // ...and kill the process.
         match self.process.take() {
             Some(proc) => runner = proc,
             None => return Err(ChainErrors::ProcessNotRunning.into()),
@@ -143,11 +154,13 @@ impl SnarkNode {
         let kill_res = runner.kill();
         self.report("killed");
 
+        // Wait for stdout thread to exit.
         if let Some(handle) = self.stdout_thread.take() {
             let _ = handle.join();
             self.report("monitor stopped");
         }
 
+        // Check if process killing returned any error
         kill_res?;
 
         // Wait for the process to finish and get the exit status
@@ -160,11 +173,30 @@ impl SnarkNode {
         self.stdout_thread.is_some()
     }
 
+    pub fn stdout_show(&mut self, show: bool) {
+        let silent = self.stdout_silent.lock();
+
+        if let Ok(mut flag) = silent {
+            *flag = !show;
+        }
+    }
+
     fn report(&self, line: &str) {
-        println!("{} | {}", &self.name, line.trim_end());
+        let console_a = self.console.lock();
+        let _ = console_a.map(|mut obj| obj.report(&self.name, line));
     }
 
     fn report_err(&self, line: &str) {
-        eprintln!("{} | {}", &self.name, line.trim_end());
+        report_err(&self.name, line);
     }
+}
+
+impl<'a> Drop for SnarkNode<'a> {
+    fn drop(&mut self) {
+        let _ = self.end();
+    }
+}
+
+fn report_err(name: &str, line: &str) {
+    eprintln!("{} | {}", name, line.trim_end());
 }

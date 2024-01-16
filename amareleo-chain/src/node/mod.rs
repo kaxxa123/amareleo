@@ -2,6 +2,7 @@ mod snark_node;
 
 use std::io::BufReader;
 use std::process::{Child, ChildStdout};
+use std::sync::atomic::AtomicBool;
 use std::sync::Arc;
 use std::sync::Mutex;
 use std::thread::JoinHandle;
@@ -30,7 +31,7 @@ pub struct SnarkNode<'a> {
 
     // Thread-safe flag for enabling/disabling
     // redirecting stdout to console.
-    stdout_silent: Arc<Mutex<bool>>,
+    stdout_silent: Arc<AtomicBool>,
 
     // Thread-safe access to console object
     console: &'a Arc<Mutex<ConsoleManager>>,

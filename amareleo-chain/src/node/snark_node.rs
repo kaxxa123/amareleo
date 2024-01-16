@@ -1,6 +1,7 @@
 use std::io::{BufRead, BufReader};
 use std::path::PathBuf;
 use std::process::{ChildStdout, Command, ExitStatus, Stdio};
+use std::sync::atomic::{AtomicBool, Ordering};
 use std::sync::Arc;
 use std::sync::Mutex;
 use std::thread;
@@ -18,7 +19,7 @@ impl<'a> SnarkNode<'a> {
             process: None,
             stdout_reader: None,
             stdout_thread: None,
-            stdout_silent: Arc::new(Mutex::new(true)),
+            stdout_silent: Arc::new(AtomicBool::new(true)),
             console,
         }
     }
@@ -109,14 +110,13 @@ impl<'a> SnarkNode<'a> {
                 match line {
                     Ok(chunk) => {
                         // Process each chunk (line) as needed
-                        let silent = shared_stdout_silent.lock();
-                        let _ = silent.map(|obj| {
-                            // Display line if not silent
-                            if !(*obj) {
-                                let console = shared_console.lock();
-                                let _ = console.map(|mut obj| obj.report(&thread_name, &chunk));
-                            }
-                        });
+                        let silent = shared_stdout_silent.load(Ordering::Relaxed);
+
+                        // Display line if not silent
+                        if !silent {
+                            let console = shared_console.lock();
+                            let _ = console.map(|mut obj| obj.report(&thread_name, &chunk));
+                        }
                     }
                     Err(err) => {
                         report_err(&thread_name, &format!("Error reading line: {}", err));
@@ -174,11 +174,7 @@ impl<'a> SnarkNode<'a> {
     }
 
     pub fn stdout_show(&mut self, show: bool) {
-        let silent = self.stdout_silent.lock();
-
-        if let Ok(mut flag) = silent {
-            *flag = !show;
-        }
+        self.stdout_silent.store(!show, Ordering::Relaxed);
     }
 
     fn report(&self, line: &str) {

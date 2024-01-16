@@ -1,4 +1,4 @@
-use crossterm::{cursor, execute, style::Print, terminal};
+use crossterm::{cursor, execute, style, style::Color, style::Print, terminal};
 
 use crate::console::*;
 
@@ -20,23 +20,8 @@ impl ConsoleManager {
         }
     }
 
-    fn end(&mut self) {
-        if self.raw_mode {
-            execute!(
-                std::io::stdout(),
-                cursor::MoveTo(0, self.size),
-                terminal::EnableLineWrap
-            )
-            .unwrap();
-
-            terminal::disable_raw_mode().expect("Failed to disable raw mode");
-            self.raw_mode = false;
-        }
-    }
-
     pub fn report(&mut self, name: &str, line: &str) {
         let mut stdout = std::io::stdout();
-
         let _ = execute!(
             stdout,
             cursor::MoveTo(0, self.position),
@@ -48,10 +33,36 @@ impl ConsoleManager {
 
         self.position = (self.position + 1) % self.size;
     }
+
+    pub fn status(&mut self, status: &str) {
+        let mut stdout = std::io::stdout();
+        let _ = execute!(
+            stdout,
+            cursor::SavePosition,
+            cursor::MoveTo(0, self.size + 1),
+            terminal::Clear(terminal::ClearType::CurrentLine),
+            style::SetBackgroundColor(Color::DarkRed),
+            style::SetForegroundColor(Color::White),
+            Print(format!(" {:<80}", status)),
+            style::ResetColor,
+            cursor::RestorePosition,
+        );
+    }
 }
 
 impl Drop for ConsoleManager {
     fn drop(&mut self) {
-        self.end();
+        if self.raw_mode {
+            // Try to cleanup.
+            // In case of failure we cannot do much...
+            let _ = execute!(
+                std::io::stdout(),
+                cursor::MoveTo(0, self.size + 2),
+                terminal::EnableLineWrap
+            );
+
+            let _ = terminal::disable_raw_mode();
+            self.raw_mode = false;
+        }
     }
 }

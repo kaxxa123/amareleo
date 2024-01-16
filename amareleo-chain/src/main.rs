@@ -11,17 +11,19 @@ use crossterm::event::{self, KeyCode};
 use node_batch::NodeSet;
 
 fn main() {
-    let base_console = ConsoleManager::start(10);
+    let mut base_console = ConsoleManager::start(10);
+    base_console.status("Starting nodes...");
+
     let console = Arc::new(Mutex::new(base_console));
 
     let mut nodes = NodeSet::new(&console);
-
     let res = nodes.start();
 
     if res.is_ok() {
         {
             let console_a = console.lock();
             let _ = console_a.map(|mut obj| {
+                obj.status("q - quit | (0, 1, 2, 3) - node dump | s - silent");
                 obj.report("main", "");
                 obj.report("main", "All nodes started!");
                 obj.report("main", "");

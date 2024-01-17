@@ -169,6 +169,7 @@ impl<'a> SnarkNode<'a> {
         Ok(exit_status)
     }
 
+    #[cfg(test)]
     pub fn has_stdout_monitor(&self) -> bool {
         self.stdout_thread.is_some()
     }

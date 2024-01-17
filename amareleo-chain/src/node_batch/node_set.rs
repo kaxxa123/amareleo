@@ -1,18 +1,13 @@
 use crate::chain_errors::ChainErrors;
 use crate::console::ConsoleManager;
 use crate::node::SnarkNode;
-use crate::node_batch::NodeSet;
+use crate::node_batch::*;
 
 use std::sync::Arc;
 use std::sync::Mutex;
 
 use homedir::get_my_home;
 use std::path::PathBuf;
-
-const NODE0_START_COMPLETE: &str = "No connected validators";
-const NODE1_START_COMPLETE: &str = "Connected to 1 validators";
-const NODE2_START_COMPLETE: &str = "Connected to 2 validators";
-const NODE3_START_COMPLETE: &str = "Advanced to block";
 
 impl<'a> NodeSet<'a> {
     pub fn new(console: &Arc<Mutex<ConsoleManager>>) -> NodeSet {
@@ -26,22 +21,6 @@ impl<'a> NodeSet<'a> {
         }
     }
 
-    fn node_args(num: usize) -> Vec<String> {
-        let mut args: Vec<String> = vec![
-            String::from("start"),
-            String::from("--dev"),
-            num.to_string(),
-            String::from("--nodisplay"),
-            String::from("--validator"),
-        ];
-
-        if num != 0 {
-            args.push(String::from("--norest"));
-        }
-
-        args
-    }
-
     pub fn start(&mut self) -> anyhow::Result<()> {
         //Cross-platform compatible retreival of the user's home dir
         let start_path: PathBuf = match get_my_home()?.take() {
@@ -50,7 +29,7 @@ impl<'a> NodeSet<'a> {
         };
 
         for (idx, node) in self.nodes.iter_mut().enumerate() {
-            node.start(&start_path, NodeSet::node_args(idx), 300u64)?;
+            node.start(&start_path, default_node_args(idx), 300u64)?;
         }
 
         Ok(())
@@ -83,4 +62,20 @@ impl<'a> Drop for NodeSet<'a> {
     fn drop(&mut self) {
         let _ = self.end();
     }
+}
+
+pub fn default_node_args(num: usize) -> Vec<String> {
+    let mut args: Vec<String> = vec![
+        String::from("start"),
+        String::from("--dev"),
+        num.to_string(),
+        String::from("--nodisplay"),
+        String::from("--validator"),
+    ];
+
+    if num != 0 {
+        args.push(String::from("--norest"));
+    }
+
+    args
 }

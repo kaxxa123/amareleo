@@ -11,7 +11,7 @@ use crossterm::event::{self, KeyCode};
 use node_batch::NodeSet;
 
 fn main() {
-    let mut base_console = ConsoleManager::start(10);
+    let mut base_console = ConsoleManager::start(20);
     base_console.status("Starting nodes...");
 
     let console = Arc::new(Mutex::new(base_console));

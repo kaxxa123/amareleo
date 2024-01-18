@@ -43,7 +43,7 @@ impl ConsoleManager {
             terminal::Clear(terminal::ClearType::CurrentLine),
             style::SetBackgroundColor(Color::DarkRed),
             style::SetForegroundColor(Color::White),
-            Print(format!(" {:<80}", status)),
+            Print(format!(" {:<500}", status)),
             style::ResetColor,
             cursor::RestorePosition,
         );

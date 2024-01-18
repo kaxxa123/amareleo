@@ -3,8 +3,11 @@ use crate::console::ConsoleManager;
 use crate::node::SnarkNode;
 use crate::node_batch::*;
 
+use std::fs::{create_dir, remove_dir_all};
 use std::sync::Arc;
 use std::sync::Mutex;
+
+use anyhow::{Context, Ok};
 
 use homedir::get_my_home;
 use std::path::PathBuf;
@@ -12,6 +15,7 @@ use std::path::PathBuf;
 impl<'a> NodeSet<'a> {
     pub fn new(console: &Arc<Mutex<ConsoleManager>>) -> NodeSet {
         NodeSet {
+            chain_path: PathBuf::new(),
             nodes: vec![
                 SnarkNode::new("node0", NODE0_START_COMPLETE, console),
                 SnarkNode::new("node1", NODE1_START_COMPLETE, console),
@@ -23,26 +27,23 @@ impl<'a> NodeSet<'a> {
 
     pub fn start(&mut self) -> anyhow::Result<()> {
         //Cross-platform compatible retreival of the user's home dir
-        let start_path: PathBuf = match get_my_home()?.take() {
-            None => return Err(ChainErrors::NoHomeDir.into()),
-            Some(path) => path,
-        };
+        self.chain_path = create_ledger_dir()?;
 
         for (idx, node) in self.nodes.iter_mut().enumerate() {
-            node.start(&start_path, default_node_args(idx), 300u64)?;
+            node.start(&self.chain_path, default_node_args(idx), 300u64)?;
         }
 
         Ok(())
     }
 
-    pub fn end(&mut self) -> anyhow::Result<()> {
+    pub fn end(&mut self) {
         // We do not check if a node has already been terminated
         // because the node instances will take care for this themselves.
         for (_, node) in self.nodes.iter_mut().enumerate().rev() {
             let _ = node.end();
         }
 
-        Ok(())
+        let _ = clear_ledger_dir(&self.chain_path);
     }
 
     pub fn stdout_silent(&mut self) {
@@ -60,7 +61,7 @@ impl<'a> NodeSet<'a> {
 
 impl<'a> Drop for NodeSet<'a> {
     fn drop(&mut self) {
-        let _ = self.end();
+        self.end();
     }
 }
 
@@ -78,4 +79,54 @@ pub fn default_node_args(num: usize) -> Vec<String> {
     }
 
     args
+}
+
+pub fn create_ledger_dir() -> anyhow::Result<PathBuf> {
+    //Cross-platform compatible retreival of the user's home dir
+    let home_path: PathBuf = match get_my_home()?.take() {
+        None => return Err(ChainErrors::NoHomeDir.into()),
+        Some(path) => path,
+    };
+
+    if !home_path.exists() {
+        return Err(std::io::Error::new(
+            std::io::ErrorKind::NotFound,
+            "Home path not found",
+        ))
+        .context("Failed to create ledger directory");
+    }
+
+    if !home_path.is_dir() {
+        return Err(std::io::Error::new(
+            std::io::ErrorKind::InvalidInput,
+            "Home path is not a directory",
+        ))
+        .context("Failed to create ledger directory");
+    }
+
+    let amareleo_path = home_path.join(AMARELEO_HOME_DIR);
+    if !amareleo_path.exists() {
+        create_dir(&amareleo_path)?;
+    }
+
+    let chain_path = amareleo_path.join(AMARELEO_CHAIN_DIR);
+    if chain_path.exists() {
+        remove_dir_all(&chain_path)?;
+    }
+    create_dir(&chain_path)?;
+
+    Ok(chain_path)
+}
+
+pub fn clear_ledger_dir(path: &PathBuf) -> anyhow::Result<()> {
+    if !path.exists() || !path.is_dir() {
+        return Err(std::io::Error::new(
+            std::io::ErrorKind::NotFound,
+            "Chain Path not found",
+        ))
+        .context("Failed to clear ledger.");
+    }
+
+    remove_dir_all(path)?;
+    Ok(())
 }

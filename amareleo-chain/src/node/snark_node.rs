@@ -10,6 +10,7 @@ use std::time::{Duration, Instant};
 use crate::chain_errors::ChainErrors;
 use crate::console::ConsoleManager;
 use crate::node::SnarkNode;
+use crate::report;
 
 impl<'a> SnarkNode<'a> {
     pub fn new(name: &str, ready: &str, console: &'a Arc<Mutex<ConsoleManager>>) -> SnarkNode<'a> {
@@ -47,7 +48,7 @@ impl<'a> SnarkNode<'a> {
         let stdout: ChildStdout = match stdout_opt {
             None => {
                 snarkos.kill()?;
-                self.report("killed");
+                report!(self.console, &self.name, None, "killed");
                 return Err(ChainErrors::NoStdout.into());
             }
             Some(stream) => stream,
@@ -65,23 +66,36 @@ impl<'a> SnarkNode<'a> {
             let read_res = reader.read_line(&mut line);
 
             if let Err(error) = read_res {
-                self.report_err(&format!("Error reading line: {}", error));
+                report!(
+                    self.console,
+                    &self.name,
+                    None,
+                    "ERROR reading node stdout line:",
+                    &error.to_string(),
+                    ""
+                );
                 break;
             } else if line.to_ascii_lowercase().contains(&ready_pharse_low) {
-                self.report(&line);
+                report!(self.console, &self.name, None, &line);
                 ready = true;
                 break;
             } else if start_time.elapsed() > Duration::from_secs(time_limit_secs) {
-                self.report_err("Timeout reading line");
+                report!(
+                    self.console,
+                    &self.name,
+                    None,
+                    "ERROR timeout reading 'ready phrase'",
+                    ""
+                );
                 break;
             } else {
-                self.report(&line);
+                report!(self.console, &self.name, None, &line);
             }
         }
 
         if !ready {
             snarkos.kill()?;
-            self.report("killed");
+            report!(self.console, &self.name, None, "killed");
             return Err(ChainErrors::CannotFindReady.into());
         }
 
@@ -109,18 +123,22 @@ impl<'a> SnarkNode<'a> {
             for line in reader.lines() {
                 match line {
                     Ok(chunk) => {
-                        // Process each chunk (line) as needed
-                        let silent = shared_stdout_silent.load(Ordering::Relaxed);
-
                         // Display line if not silent
+                        let silent = shared_stdout_silent.load(Ordering::Relaxed);
                         if !silent {
-                            let console = shared_console.lock();
-                            let _ = console.map(|mut obj| obj.report(&thread_name, &chunk));
+                            report!(shared_console, &thread_name, None, &chunk);
                         }
                     }
                     Err(err) => {
-                        report_err(&thread_name, &format!("Error reading line: {}", err));
-                        report_err(&thread_name, "terminating stdout monitor.");
+                        report!(
+                            shared_console,
+                            &thread_name,
+                            None,
+                            "ERROR reading node stdout line:",
+                            &err.to_string(),
+                            "Terminating stdout monitor.",
+                            ""
+                        );
                         break; // Stop reading on error
                     }
                 }
@@ -152,12 +170,12 @@ impl<'a> SnarkNode<'a> {
         }
 
         let kill_res = runner.kill();
-        self.report("killed");
+        report!(self.console, &self.name, None, "killed");
 
         // Wait for stdout thread to exit.
         if let Some(handle) = self.stdout_thread.take() {
             let _ = handle.join();
-            self.report("monitor stopped");
+            report!(self.console, &self.name, None, "monitor stopped");
         }
 
         // Check if process killing returned any error
@@ -165,7 +183,12 @@ impl<'a> SnarkNode<'a> {
 
         // Wait for the process to finish and get the exit status
         let exit_status = runner.wait()?;
-        self.report(&format!("exit code {exit_status}"));
+        report!(
+            self.console,
+            &self.name,
+            None,
+            &format!("exit code {exit_status}")
+        );
         Ok(exit_status)
     }
 
@@ -177,23 +200,10 @@ impl<'a> SnarkNode<'a> {
     pub fn stdout_show(&mut self, show: bool) {
         self.stdout_silent.store(!show, Ordering::Relaxed);
     }
-
-    fn report(&self, line: &str) {
-        let console_a = self.console.lock();
-        let _ = console_a.map(|mut obj| obj.report(&self.name, line));
-    }
-
-    fn report_err(&self, line: &str) {
-        report_err(&self.name, line);
-    }
 }
 
 impl<'a> Drop for SnarkNode<'a> {
     fn drop(&mut self) {
         let _ = self.end();
     }
-}
-
-fn report_err(name: &str, line: &str) {
-    eprintln!("{} | {}", name, line.trim_end());
 }

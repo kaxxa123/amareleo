@@ -17,45 +17,50 @@ fn main() {
     let console = Arc::new(Mutex::new(base_console));
 
     let mut nodes = NodeSet::new(&console);
-    let res = nodes.start();
+    match nodes.start() {
+        Ok(_) => {
+            report!(
+                console,
+                "main",
+                Some("q - quit | (0, 1, 2, 3) - node dump | s - silent"),
+                "",
+                "All nodes started!",
+                ""
+            );
 
-    if res.is_ok() {
-        {
-            let console_a = console.lock();
-            let _ = console_a.map(|mut obj| {
-                obj.status("q - quit | (0, 1, 2, 3) - node dump | s - silent");
-                obj.report("main", "");
-                obj.report("main", "All nodes started!");
-                obj.report("main", "");
-            });
-        }
-
-        loop {
-            if let Ok(event::Event::Key(key_event)) = event::read() {
-                match key_event.code {
-                    KeyCode::Char('q') => {
-                        let console_a = console.lock();
-                        let _ = console_a.map(|mut obj| obj.report("main", "Quitting..."));
-
-                        break;
-                    }
-
-                    KeyCode::Char('s') => {
-                        {
-                            let console_a = console.lock();
-                            let _ = console_a.map(|mut obj| obj.report("main", "Silent..."));
+            loop {
+                if let Ok(event::Event::Key(key_event)) = event::read() {
+                    match key_event.code {
+                        KeyCode::Char('q') => {
+                            report!(console, "main", None, "Quitting...");
+                            break;
                         }
-                        nodes.stdout_silent();
+
+                        KeyCode::Char('s') => {
+                            report!(console, "main", None, "Silent...");
+                            nodes.stdout_silent();
+                        }
+
+                        KeyCode::Char('0') => nodes.stdout_show(0),
+                        KeyCode::Char('1') => nodes.stdout_show(1),
+                        KeyCode::Char('2') => nodes.stdout_show(2),
+                        KeyCode::Char('3') => nodes.stdout_show(3),
+
+                        _ => {}
                     }
-
-                    KeyCode::Char('0') => nodes.stdout_show(0),
-                    KeyCode::Char('1') => nodes.stdout_show(1),
-                    KeyCode::Char('2') => nodes.stdout_show(2),
-                    KeyCode::Char('3') => nodes.stdout_show(3),
-
-                    _ => {}
                 }
             }
+        }
+        Err(err) => {
+            report!(
+                console,
+                "main",
+                Some("Failed!"),
+                "",
+                "Failed on starting nodes!",
+                &err.to_string(),
+                ""
+            );
         }
     }
 }

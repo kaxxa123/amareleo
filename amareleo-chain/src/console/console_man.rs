@@ -42,6 +42,8 @@ impl ConsoleManager {
         let _ = execute!(
             stdout,
             cursor::SavePosition,
+            cursor::MoveTo(0, self.size),
+            terminal::Clear(terminal::ClearType::CurrentLine),
             cursor::MoveTo(0, self.size + 1),
             terminal::Clear(terminal::ClearType::CurrentLine),
             style::SetBackgroundColor(Color::DarkRed),
@@ -59,6 +61,8 @@ impl ConsoleManager {
             let _ = queue!(
                 stdout,
                 cursor::SavePosition,
+                cursor::MoveTo(0, self.size),
+                terminal::Clear(terminal::ClearType::CurrentLine),
                 cursor::MoveTo(0, self.size + 1),
                 terminal::Clear(terminal::ClearType::CurrentLine),
                 style::SetBackgroundColor(Color::DarkRed),

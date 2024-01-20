@@ -16,6 +16,9 @@ pub struct SnarkNode<'a> {
     // Friendly process name
     name: String,
 
+    // snarkos arguments
+    args: Vec<String>,
+
     // A phrase that indicates that the process started and has
     // completed initialization.
     ready_phrase: String,

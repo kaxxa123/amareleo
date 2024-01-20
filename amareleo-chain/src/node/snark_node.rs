@@ -8,15 +8,21 @@ use std::thread;
 use std::time::{Duration, Instant};
 
 use crate::chain_errors::ChainErrors;
+use crate::config::NodeArgs;
 use crate::console::ConsoleManager;
 use crate::node::SnarkNode;
 use crate::report;
 
 impl<'a> SnarkNode<'a> {
-    pub fn new(name: &str, ready: &str, console: &'a Arc<Mutex<ConsoleManager>>) -> SnarkNode<'a> {
+    pub fn new(
+        cfg: NodeArgs,
+        name: &str,
+        console: &'a Arc<Mutex<ConsoleManager>>,
+    ) -> SnarkNode<'a> {
         SnarkNode {
             name: name.to_string(),
-            ready_phrase: ready.to_string(),
+            args: cfg.node,
+            ready_phrase: cfg.started,
             process: None,
             stdout_reader: None,
             stdout_thread: None,
@@ -25,12 +31,7 @@ impl<'a> SnarkNode<'a> {
         }
     }
 
-    fn start_process(
-        &mut self,
-        start_path: &PathBuf,
-        params: Vec<String>,
-        time_limit_secs: u64,
-    ) -> anyhow::Result<()> {
+    fn start_process(&mut self, start_path: &PathBuf, time_limit_secs: u64) -> anyhow::Result<()> {
         if self.process.is_some() {
             return Err(ChainErrors::ProcessAlreadyStarted.into());
         }
@@ -38,7 +39,7 @@ impl<'a> SnarkNode<'a> {
         let start_time = Instant::now();
 
         let mut snarkos = Command::new("snarkos")
-            .args(params)
+            .args(&self.args)
             .stdout(Stdio::piped())
             .current_dir(start_path)
             .spawn()?;
@@ -149,13 +150,8 @@ impl<'a> SnarkNode<'a> {
         Ok(())
     }
 
-    pub fn start(
-        &mut self,
-        start_path: &PathBuf,
-        params: Vec<String>,
-        time_limit_secs: u64,
-    ) -> anyhow::Result<()> {
-        self.start_process(start_path, params, time_limit_secs)?;
+    pub fn start(&mut self, start_path: &PathBuf, time_limit_secs: u64) -> anyhow::Result<()> {
+        self.start_process(start_path, time_limit_secs)?;
         self.consume_stdout()
     }
 

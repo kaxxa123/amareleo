@@ -19,6 +19,15 @@ pub enum ChainErrors {
 
     /// Cannot find process ready phrase
     CannotFindReady,
+
+    /// Node Configuration Not Found.
+    ConfigNodesNotFound,
+
+    /// Node Configuration only supports up to 10 nodes.
+    ConfigTooManyNodes,
+
+    /// --dev parameter must NOT be configured
+    ConfigRemoveDevArg,
 }
 
 impl fmt::Display for ChainErrors {

@@ -24,6 +24,10 @@ pub struct InitArgs {
     /// Path to json configuration
     #[arg(long, short)]
     pub cfg: Option<String>,
+
+    /// Force writing even if config already exists
+    #[arg(long, short)]
+    pub force: bool,
 }
 
 #[derive(Debug, Args)]

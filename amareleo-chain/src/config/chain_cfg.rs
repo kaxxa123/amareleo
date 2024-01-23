@@ -41,8 +41,12 @@ impl ChainArgs {
         Ok(())
     }
 
-    pub fn load() -> anyhow::Result<ChainArgs> {
-        let cfg_path = create_amareleo_dir()?.join(AMARELEO_CHAIN_CFG);
+    pub fn load(path: &Option<String>) -> anyhow::Result<ChainArgs> {
+        let cfg_path = match path {
+            Some(apath) => file_exists(apath)?,
+            None => create_amareleo_dir()?.join(AMARELEO_CHAIN_CFG),
+        };
+
         if !cfg_path.exists() {
             ChainArgs::init(&cfg_path)?;
         }
@@ -101,7 +105,36 @@ pub fn default_node_args(num: usize, all: bool) -> Vec<String> {
     args
 }
 
+pub fn folder_exists(path: &str) -> anyhow::Result<PathBuf> {
+    let folder = PathBuf::from(path);
+
+    if !folder.exists() || !folder.is_dir() {
+        return Err(std::io::Error::new(
+            std::io::ErrorKind::NotFound,
+            "Folder path not found",
+        ))
+        .context("Finding ledger base directory.");
+    }
+
+    Ok(folder)
+}
+
+pub fn file_exists(path: &str) -> anyhow::Result<PathBuf> {
+    let file = PathBuf::from(path);
+
+    if !file.exists() || !file.is_file() {
+        return Err(std::io::Error::new(
+            std::io::ErrorKind::NotFound,
+            "File path not found",
+        ))
+        .context("Finding configuration file.");
+    }
+
+    Ok(file)
+}
+
 pub fn create_amareleo_dir() -> anyhow::Result<PathBuf> {
+    //Cross-platform compatible retreival of the user's home dir
     let home_path: PathBuf = match get_my_home()?.take() {
         None => return Err(ChainErrors::NoHomeDir.into()),
         Some(path) => path,

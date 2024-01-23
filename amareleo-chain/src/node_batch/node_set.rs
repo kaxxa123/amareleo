@@ -18,13 +18,18 @@ impl<'a> NodeSet<'a> {
 
         NodeSet {
             chain_path: PathBuf::new(),
+            clear: false,
             nodes: node_list,
         }
     }
 
-    pub fn start(&mut self) -> anyhow::Result<()> {
-        //Cross-platform compatible retreival of the user's home dir
-        self.chain_path = create_ledger_dir()?;
+    pub fn start(&mut self, ledger: &Option<String>) -> anyhow::Result<()> {
+        self.chain_path = if let Some(path) = ledger {
+            folder_exists(path)?
+        } else {
+            self.clear = true;
+            create_ledger_dir()?
+        };
 
         for node in self.nodes.iter_mut() {
             node.start(&self.chain_path, 300u64)?;
@@ -40,7 +45,10 @@ impl<'a> NodeSet<'a> {
             let _ = node.end();
         }
 
-        let _ = clear_ledger_dir(&self.chain_path);
+        // Only clear if user didn't override the ledger storge path
+        if self.clear {
+            let _ = clear_ledger_dir(&self.chain_path);
+        }
     }
 
     pub fn stdout_silent(&mut self) {

@@ -1,3 +1,4 @@
+mod app_args;
 mod chain_errors;
 mod config;
 mod console;
@@ -7,16 +8,19 @@ mod node_batch;
 use std::sync::Arc;
 use std::sync::Mutex;
 
+use app_args::*;
+use clap::Parser;
+
 use config::ChainArgs;
 use console::ConsoleManager;
 use crossterm::event::{self, KeyCode};
 use node_batch::NodeSet;
 
-fn main() {
+fn run(args: &RunArgs) {
     let mut base_console = ConsoleManager::start(20);
     base_console.status("Starting nodes...");
 
-    let chain_cfg = match ChainArgs::load() {
+    let chain_cfg = match ChainArgs::load(&args.cfg) {
         Err(err) => {
             base_console.batch_report(
                 "main",
@@ -30,7 +34,7 @@ fn main() {
 
     let console = Arc::new(Mutex::new(base_console));
     let mut nodes = NodeSet::new(chain_cfg, &console);
-    match nodes.start() {
+    match nodes.start(&args.ledger) {
         Ok(_) => {
             report!(
                 console,
@@ -81,6 +85,27 @@ fn main() {
                 ""
             );
         }
+    }
+}
+
+fn main() {
+    let params = AppCmds::try_parse();
+
+    let params = match params {
+        Ok(res) => res.cmd_type.unwrap_or(AppCmdType::Run(RunArgs {
+            cfg: None,
+            ledger: None,
+        })),
+        Err(err) => {
+            let _ = err.print();
+            cmd_usage();
+            return;
+        }
+    };
+
+    match params {
+        AppCmdType::Init(_) => {}
+        AppCmdType::Run(args) => run(&args),
     }
 }
 

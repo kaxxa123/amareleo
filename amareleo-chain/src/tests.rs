@@ -7,7 +7,7 @@ use crate::node::SnarkNode;
 
 #[test]
 fn test_start_node0() {
-    let mut chain_cfg = config::ChainArgs::load().unwrap();
+    let mut chain_cfg = config::ChainArgs::load(&None).unwrap();
 
     let base_console = ConsoleManager::start(10);
     let console = Arc::new(Mutex::new(base_console));

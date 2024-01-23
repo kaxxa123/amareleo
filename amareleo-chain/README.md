@@ -52,4 +52,4 @@ Once ready hit q to terminate amareleo-chain.
 
 ## What Next?
 
-There is more we would like to add. We want to tool to be fully configurable such that if snarkOS changes one would get the tool running by tweaking a JSON configuration file. We also want the tool to start showing critical information like the processing of transactions and the mining of new blocks whilst filtering out other information. Stay tuned and post an issue if you would like to add more functionality.
+There is more we would like to add. We want the tool to be fully configurable such that if snarkOS changes one would get the tool running by tweaking a JSON configuration file. We also want the tool to start showing critical information like the processing of transactions and the mining of new blocks whilst filtering out other information. Stay tuned and post an issue if you would like to add more functionality.

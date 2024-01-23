@@ -5,13 +5,14 @@ mod console;
 mod node;
 mod node_batch;
 
+use std::path::PathBuf;
 use std::sync::Arc;
 use std::sync::Mutex;
 
 use app_args::*;
 use clap::Parser;
 
-use config::ChainArgs;
+use config::*;
 use console::ConsoleManager;
 use crossterm::event::{self, KeyCode};
 use node_batch::NodeSet;
@@ -88,6 +89,66 @@ fn run(args: &RunArgs) {
     }
 }
 
+fn init(args: &InitArgs) {
+    let mut base_console = ConsoleManager::start(20);
+    base_console.status("Initializing config...");
+
+    let cfg_path: anyhow::Result<PathBuf> = match &args.cfg {
+        Some(apath) => Ok(PathBuf::from(apath)),
+        None => match create_amareleo_dir() {
+            Ok(default_dir) => Ok(default_dir.join(AMARELEO_CHAIN_CFG)),
+            Err(err) => {
+                base_console.batch_report(
+                    "main",
+                    Some("Failed"),
+                    &[
+                        "ERROR on initializing default config path",
+                        &err.to_string(),
+                        "",
+                    ],
+                );
+                Err(err)
+            }
+        },
+    };
+
+    if let Ok(path) = cfg_path {
+        if !args.force && path.exists() {
+            base_console.batch_report(
+                "main",
+                Some("Failed"),
+                &[
+                    "ERROR config already exists. Use --force to overwrite",
+                    path.to_str().unwrap(),
+                    "",
+                ],
+            );
+
+            return;
+        }
+
+        match ChainArgs::init(&path) {
+            Err(err) => base_console.batch_report(
+                "main",
+                Some("Failed"),
+                &[
+                    "ERROR on initializing config",
+                    &err.to_string(),
+                    path.to_str().unwrap(),
+                    "",
+                ],
+            ),
+            Ok(_) => {
+                base_console.batch_report(
+                    "main",
+                    Some("Ready"),
+                    &["Configuration initialized", path.to_str().unwrap(), ""],
+                );
+            }
+        }
+    }
+}
+
 fn main() {
     let params = AppCmds::try_parse();
 
@@ -104,7 +165,7 @@ fn main() {
     };
 
     match params {
-        AppCmdType::Init(_) => {}
+        AppCmdType::Init(args) => init(&args),
         AppCmdType::Run(args) => run(&args),
     }
 }

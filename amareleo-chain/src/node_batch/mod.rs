@@ -3,8 +3,6 @@ mod node_set;
 use crate::node::*;
 use std::path::PathBuf;
 
-pub use node_set::*;
-
 pub struct NodeSet<'a> {
     // Path to chain storage
     chain_path: PathBuf,

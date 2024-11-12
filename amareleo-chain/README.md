@@ -4,7 +4,7 @@
 
 * A process manager that launches multiple snarkOS instances and cleans up the ledger storage on exit.
 
-* Relieves developers from the details or running multiple snarkOS instances to have a functioning test environment.
+* Relieves developers from the details of running multiple snarkOS instances to have a functioning test environment.
 
 
 <BR />
@@ -14,14 +14,16 @@
 Amareleo-chain was tested against the latest snarkOS release to date (v2.2.7) on __Ubuntu 22.04 (LTS)__.
 
 
-* [Check the minimum requirements for running snarkOS](https://github.com/AleoHQ/snarkOS?tab=readme-ov-file#2-build-guide).
+* [Check the minimum requirements for running snarkOS](https://github.com/AleoNet/snarkOS?tab=readme-ov-file#2-build-guide).
 
 * Install the latest snarkOS
     ```BASH
-    git clone https://github.com/AleoHQ/snarkOS.git
+    git clone https://github.com/AleoNet/snarkOS.git    
     cd snarkOS
-    git checkout testnet3
-    cargo install --path .
+    git checkout -B  mainnet
+
+    ./build_ubuntu.sh
+    cargo install --locked --path .
     ```
 
 * Install amareleo-chain

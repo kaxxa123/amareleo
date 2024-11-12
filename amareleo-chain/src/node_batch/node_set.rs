@@ -52,7 +52,7 @@ impl<'a> NodeSet<'a> {
     }
 
     pub fn stdout_silent(&mut self) {
-        for (_, node) in self.nodes.iter_mut().enumerate() {
+        for node in self.nodes.iter_mut() {
             node.stdout_show(false);
         }
     }

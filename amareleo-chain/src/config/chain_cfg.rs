@@ -67,11 +67,21 @@ impl ChainArgs {
             return Err(ChainErrors::ConfigTooManyNodes.into());
         }
 
+        // Make sure none of the parameters contain whitespace such as
+        // "--network 1". This should instead be listed as two parameters.
+        for cfgnode in json.snarkos.iter() {
+            for param in cfgnode.node.iter() {
+                if param.to_ascii_lowercase().trim().chars().any(|c| c.is_whitespace()) {
+                    return Err(ChainErrors::ConfigRemoveArgSpace(param.to_string()).into());
+                }
+            }
+        }
+
         // Make sure none of the configurations includes the --dev argument
         for cfgnode in json.snarkos.iter() {
             for param in cfgnode.node.iter() {
                 if param.to_ascii_lowercase().trim() == "--dev" {
-                    return Err(ChainErrors::ConfigRemoveDevArg.into());
+                    return Err(ChainErrors::ConfigRemoveDevArg(param.to_string()).into());
                 }
             }
         }

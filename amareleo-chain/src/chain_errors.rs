@@ -27,7 +27,10 @@ pub enum ChainErrors {
     ConfigTooManyNodes,
 
     /// --dev parameter must NOT be configured
-    ConfigRemoveDevArg,
+    ConfigRemoveDevArg(String),
+
+    /// Parametes should not contiain whitespace. Split "--network 1" into two parameters.
+    ConfigRemoveArgSpace(String),
 }
 
 impl fmt::Display for ChainErrors {

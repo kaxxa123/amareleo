@@ -66,6 +66,33 @@ command-line parameter to amareleo-chain, overriding the default configuration p
 
 <BR />
 
+### Configuration Schema
+
+The amareleo-chain configuration schema is very simple. Looking at the one generated automatically after the first run under `~/.amareleo/chain-cfg.json`, is the best starting point.
+
+Here is a snippet:
+
+```JSON
+{
+    "snarkos": [
+        {
+            "node": [
+                "start",
+                "--nodisplay",
+                "--validator",
+                "--network",
+                "1"
+            ],
+            "started": "No connected validators"
+        },
+```
+
+`snarkos` provides a list of snarkos instances to be launched on running amareleo-chain. Aleo requires at least four validators, thus one should normally have at least four entries under the `snarkos` list. Each entry under `snarkos` includes two elements `node` and `started`.
+
+`node` is an array of parameters to be passed to snarkos. Parameters should not contain any spaces. If one wanted to pass `--network 1` to snarkos, this would be configured as two entries in the `node` array. All supported snarkos parameters can be set here except for the `--dev` parameter. This parameter is automatically added to each node by amareleo-chain.
+
+`started` - Is a text string that helps amareleo-chain identify when the node startup is completed. Amareleo-chain monitors the log information snarkos produces. As soon as this text is matched, it moves on to start the next node. This is necessary for starting a well functioning chain. One can disable this matching process by setting the value to an empty string.
+
 ## Command-line Options
 
 For a full list of command-line options run:

@@ -2,6 +2,7 @@ use crate::config::*;
 use crate::console::ConsoleManager;
 use crate::node::SnarkNode;
 use crate::node_batch::*;
+use crate::report;
 
 use std::sync::Arc;
 use std::sync::Mutex;
@@ -20,16 +21,26 @@ impl<'a> NodeSet<'a> {
             chain_path: PathBuf::new(),
             clear: false,
             nodes: node_list,
+            console
         }
     }
 
     pub fn start(&mut self, ledger: &Option<String>) -> anyhow::Result<()> {
+        report!(self.console, "main", None, "Starting Nodes");
+
         self.chain_path = if let Some(path) = ledger {
             folder_exists(path)?
         } else {
             self.clear = true;
             create_ledger_dir()?
         };
+
+        report!(
+            self.console, 
+            "main", 
+            None, 
+            "Chain data path:", 
+            self.chain_path.to_str().expect("Failed, should have valid chain storage path!"));
 
         for node in self.nodes.iter_mut() {
             node.start(&self.chain_path, 300u64)?;
@@ -39,6 +50,8 @@ impl<'a> NodeSet<'a> {
     }
 
     pub fn end(&mut self) {
+        report!(self.console, "main", None, "Closing Nodes");
+
         // We do not check if a node has already been terminated
         // because the node instances will take care for this themselves.
         for (_, node) in self.nodes.iter_mut().enumerate().rev() {

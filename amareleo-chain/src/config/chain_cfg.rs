@@ -123,7 +123,7 @@ pub fn folder_exists(path: &str) -> anyhow::Result<PathBuf> {
             std::io::ErrorKind::NotFound,
             "Folder path not found",
         ))
-        .context("Finding ledger base directory.");
+        .context("Failed on finding ledger base directory.");
     }
 
     Ok(folder)
@@ -137,7 +137,7 @@ pub fn file_exists(path: &str) -> anyhow::Result<PathBuf> {
             std::io::ErrorKind::NotFound,
             "File path not found",
         ))
-        .context("Finding configuration file.");
+        .context("Failed on finding configuration file.");
     }
 
     Ok(file)

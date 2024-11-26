@@ -1,0 +1,36 @@
+[package]
+name = "snarkos-lite"
+version = "0.1.0"
+edition = "2021"
+
+[workspace]
+members = ["cli", "node/helpers"]
+
+[[bin]]
+name = "snarkos-lite"
+path = "snarkos/main.rs"
+
+[dependencies]
+
+[workspace.dependencies.aleo-std]
+version = "=0.1.24"
+default-features = false
+features = ["storage"]
+
+[dependencies.snarkos-lite-cli]
+path = "./cli"
+version = "=0.1.0"
+
+[dependencies.snarkos-lite-node-helpers]
+path = "./node/helpers"
+version = "=0.1.0"
+
+[dependencies.anyhow]
+version = "1.0.93"
+
+[dependencies.clap]
+version = "4.5"
+features = ["derive"]
+
+[target.'cfg(all(target_os = "linux", target_arch = "x86_64"))'.dependencies]
+tikv-jemallocator = "0.5"

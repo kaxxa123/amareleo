@@ -43,8 +43,23 @@ features = ["derive"]
 version = "1"
 features = ["preserve_order"]
 
+[dependencies.time]
+version = "0.3"
+features = ["formatting"]
+
+[dependencies.tracing]
+version = "0.1"
+
+[dependencies.tracing-subscriber]
+version = "0.3"
+features = ["env-filter"]
+
 [dependencies.thiserror]
 version = "1.0"
+
+[dependencies.tokio]
+version = "1.28"
+features = ["rt"]
 
 [dependencies.sys-info]
 version = "0.9"

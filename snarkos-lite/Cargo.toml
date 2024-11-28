@@ -17,8 +17,23 @@ version = "=0.1.24"
 default-features = false
 features = ["storage"]
 
+[workspace.dependencies.snarkvm]
+path = "/home/alexubuntu22/aleo/snarkVM-lite"
+# git = "https://github.com/AleoNet/snarkVM.git"
+# rev = "3d42aa0"                                # If this is updated, the rev in `node/rest/Cargo.toml` must be updated as well.
+#version = "=0.16.18"
+features = ["circuit", "console", "rocks"]
+
+[workspace.dependencies.snarkos-lite-account]
+path = "./account"
+version = "=0.1.0"
+
 [dependencies.snarkos-lite-cli]
 path = "./cli"
+version = "=0.1.0"
+
+[dependencies.snarkos-lite-node]
+path = "./node"
 version = "=0.1.0"
 
 [dependencies.snarkos-lite-node-helpers]

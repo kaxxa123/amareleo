@@ -13,7 +13,9 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-// AlexZ: Identical
+// AlexZ: Identical, except for:
+// - removal of `--nodisplay` parameter support assuming this is always true.
+//   doing this to shrink the code size.
 
 use crate::helpers::{DynamicFormatter, LogWriter};
 
@@ -44,7 +46,6 @@ use tracing_subscriber::{
 /// ```
 pub fn initialize_logger<P: AsRef<Path>>(
     verbosity: u8,
-    nodisplay: bool,
     logfile: P,
     shutdown: Arc<AtomicBool>,
 ) -> mpsc::Receiver<Vec<u8>> {
@@ -108,13 +109,12 @@ pub fn initialize_logger<P: AsRef<Path>>(
         File::options().append(true).create(true).open(logfile).expect("Failed to open the file for writing logs");
 
     // Initialize the log channel.
-    let (log_sender, log_receiver) = mpsc::channel(1024);
+    let (_ , log_receiver) = mpsc::channel(1024);
 
     // Initialize the log sender.
-    let log_sender = match nodisplay {
-        true => None,
-        false => Some(log_sender),
-    };
+    // AlexZ: hardcoding to None as a result of 
+    //        snarkos start --nodisplay being always true.
+    let log_sender =  None;
 
     // Initialize tracing.
     let _ = tracing_subscriber::registry()

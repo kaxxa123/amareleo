@@ -1,0 +1,5 @@
+[package]
+name = "snarkos-lite-node"
+version = "0.1.0"
+license = "Apache-2.0"
+edition = "2021"

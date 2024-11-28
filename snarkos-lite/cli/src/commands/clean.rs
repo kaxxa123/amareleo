@@ -27,9 +27,6 @@ pub struct Clean {
     /// Specify the network to remove from storage.
     #[clap(default_value = "0", long = "network")]
     pub network: u16,
-    /// Enables development mode, specify the unique ID of the local node to clean.
-    #[clap(long)]
-    pub dev: Option<u16>,
     /// Specify the path to a directory containing the ledger
     #[clap(long = "path")]
     pub path: Option<PathBuf>,
@@ -39,7 +36,7 @@ impl Clean {
     /// Cleans the snarkOS node storage.
     pub fn parse(self) -> Result<String> {
         // Remove the current proposal cache file, if it exists.
-        let proposal_cache_path = proposal_cache_path(self.network, self.dev);
+        let proposal_cache_path = proposal_cache_path(self.network, Some(0u16));
         if proposal_cache_path.exists() {
             if let Err(err) = std::fs::remove_file(&proposal_cache_path) {
                 bail!("Failed to remove the current proposal cache file at {}: {err}", proposal_cache_path.display());
@@ -48,7 +45,7 @@ impl Clean {
         // Remove the specified ledger from storage.
         Self::remove_ledger(self.network, match self.path {
             Some(path) => StorageMode::Custom(path),
-            None => StorageMode::from(self.dev),
+            None => StorageMode::from(Some(0u16)),
         })
     }
 

@@ -1,18 +1,6 @@
 [package]
 name = "snarkos-lite-account"
-version = "2.2.7"
-authors = ["The Aleo Team <hello@aleo.org>"]
-description = "Account for a decentralized operating system"
-homepage = "https://aleo.org"
-repository = "https://github.com/AleoNet/snarkOS"
-keywords = [
-  "aleo",
-  "cryptography",
-  "blockchain",
-  "decentralized",
-  "zero-knowledge",
-]
-categories = ["cryptography", "operating-systems"]
+version = "0.1.0"
 license = "Apache-2.0"
 edition = "2021"
 

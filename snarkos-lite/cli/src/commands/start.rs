@@ -15,6 +15,7 @@
 
 use aleo_std::StorageMode;
 use snarkos_lite_account::Account;
+use snarkos_lite_node::Node;
 use snarkvm::{
     console::{
         account::{Address, PrivateKey},
@@ -237,7 +238,7 @@ impl Start {
 
     /// Returns the node type corresponding to the given configurations.
     #[rustfmt::skip]
-    async fn parse_node<N: Network>(&mut self, shutdown: Arc<AtomicBool>) -> Result<()> /*-> Result<Node<N>>*/ {
+    async fn parse_node<N: Network>(&mut self, shutdown: Arc<AtomicBool>) -> Result<Node<N>> {
         // Print the welcome.
         println!("{}", crate::helpers::welcome_message());
 
@@ -268,14 +269,14 @@ impl Start {
             node_ip.to_string().bold()
         );
 
-        // // If the node is running a REST server, print the REST IP and JWT.
-        // if let Some(rest_ip) = rest_ip {
-        //     println!("🌐 Starting the REST server at {}.\n", rest_ip.to_string().bold());
+        // If the node is running a REST server, print the REST IP and JWT.
+        if let Some(rest_ip) = rest_ip {
+            println!("🌐 Starting the REST server at {}.\n", rest_ip.to_string().bold());
 
-        //     if let Ok(jwt_token) = snarkos_node_rest::Claims::new(account.address()).to_jwt_string() {
-        //         println!("🔑 Your one-time JWT token is {}\n", jwt_token.dimmed());
-        //     }
-        // }
+            // if let Ok(jwt_token) = snarkos_lite_node_rest::Claims::new(account.address()).to_jwt_string() {
+            //     println!("🔑 Your one-time JWT token is {}\n", jwt_token.dimmed());
+            // }
+        }
 
         // Initialize the storage mode.
         let storage_mode = match &self.storage {
@@ -287,9 +288,7 @@ impl Start {
         let dev_txs = !self.no_dev_txs;
 
         // // Initialize the node.
-        // Node::new_validator(node_ip, self.bft, rest_ip, self.rest_rps, account,  genesis, cdn, storage_mode, self.allow_external_peers, dev_txs, shutdown.clone()).await
-
-        Ok(())
+        Node::new_validator(node_ip, self.bft, rest_ip, self.rest_rps, account, genesis, storage_mode, dev_txs, shutdown.clone()).await
     }
         
     /// Returns a runtime for the node.

@@ -3,3 +3,16 @@ name = "snarkos-lite-node"
 version = "0.1.0"
 license = "Apache-2.0"
 edition = "2021"
+
+[dependencies.snarkvm]
+workspace = true
+features = ["console"]
+
+[dependencies.aleo-std]
+workspace = true
+
+[dependencies.snarkos-lite-account]
+workspace = true
+
+[dependencies.anyhow]
+version = "1.0.79"

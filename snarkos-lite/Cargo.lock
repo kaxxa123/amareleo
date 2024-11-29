@@ -2498,6 +2498,12 @@ dependencies = [
 [[package]]
 name = "snarkos-lite-node"
 version = "0.1.0"
+dependencies = [
+ "aleo-std",
+ "anyhow",
+ "snarkos-lite-account",
+ "snarkvm",
+]
 
 [[package]]
 name = "snarkos-lite-node-helpers"

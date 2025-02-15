@@ -2,7 +2,7 @@
 name = "amareleo"
 version = "2.0.2"
 authors = ["The Amareleo Team <amareleo@windeveloper.com>"]
-description = "A lite Aleo development node"
+description = "An Aleo test framework"
 homepage = "https://amareleo.com"
 repository = "https://github.com/kaxxa123/amareleo"
 keywords = [

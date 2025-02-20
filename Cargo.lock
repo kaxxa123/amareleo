@@ -113,13 +113,12 @@ version = "2.0.2"
 dependencies = [
  "amareleo-chain",
  "anyhow",
+ "built",
 ]
 
 [[package]]
 name = "amareleo-chain"
 version = "2.0.2"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "1fb09501ce02b355b82dbe46f8ccf28270ec8cea6f9873fd421a927906eb70fa"
 dependencies = [
  "amareleo-chain-account",
  "amareleo-chain-cli",
@@ -138,8 +137,6 @@ dependencies = [
 [[package]]
 name = "amareleo-chain-account"
 version = "2.0.2"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "2fa5194ce6263d487336d27128a82367705fec03f00662de30b390a3ae1dfa0a"
 dependencies = [
  "colored",
  "snarkvm",
@@ -148,8 +145,6 @@ dependencies = [
 [[package]]
 name = "amareleo-chain-cli"
 version = "2.0.2"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "2ba9931efa5b5473b4d2cf6ec12cf10b72a3e4f8d1d8fd1fec4a47ab1511f164"
 dependencies = [
  "amareleo-chain-account",
  "amareleo-chain-resources",
@@ -179,14 +174,10 @@ dependencies = [
 [[package]]
 name = "amareleo-chain-resources"
 version = "2.0.2"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "17316e8152f508b16ae704b6e86fa44c2685a65ec6072b1cf26ebcb7f83726b4"
 
 [[package]]
 name = "amareleo-node"
 version = "2.0.2"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "aac12995ce053691cd16fcf3c278aa4c8890dedf08bd640b97b9add2231a6d80"
 dependencies = [
  "aleo-std",
  "amareleo-chain-account",
@@ -208,8 +199,6 @@ dependencies = [
 [[package]]
 name = "amareleo-node-bft"
 version = "2.0.2"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "97ee6a7aa3c4ef6b7ba69e3f470e633422fafe54ef5e92bc8f15b200fd6fe73a"
 dependencies = [
  "aleo-std",
  "amareleo-chain-account",
@@ -239,8 +228,6 @@ dependencies = [
 [[package]]
 name = "amareleo-node-bft-events"
 version = "2.0.2"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "a63f0b5168e4a102f9a03746ef33b8f7197bae5bd4072b16d2792a3287c1332a"
 dependencies = [
  "amareleo-node-metrics",
  "amareleo-node-sync-locators",
@@ -257,8 +244,6 @@ dependencies = [
 [[package]]
 name = "amareleo-node-bft-ledger-service"
 version = "2.0.2"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "c25b45211a6bde0b88dabeafdb896d42ffb4c803297f4292c04c6f937810732b"
 dependencies = [
  "amareleo-node-metrics",
  "async-trait",
@@ -275,8 +260,6 @@ dependencies = [
 [[package]]
 name = "amareleo-node-bft-storage-service"
 version = "2.0.2"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "b578d4d73afe8b3eec1663f3960ac9994c453d62b5c8fa80a6caffd8d9dc8acb"
 dependencies = [
  "aleo-std",
  "anyhow",
@@ -290,8 +273,6 @@ dependencies = [
 [[package]]
 name = "amareleo-node-consensus"
 version = "2.0.2"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "a0be172ff3d954acb5a09c1265d7856bb508754c1330b8a6a7bad8a00011b390"
 dependencies = [
  "aleo-std",
  "amareleo-chain-account",
@@ -312,8 +293,6 @@ dependencies = [
 [[package]]
 name = "amareleo-node-metrics"
 version = "2.0.2"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "cc3b158c5f18b1237cdf1cf9448c13d51291dc64d4cffd9816ff60d67470b5c4"
 dependencies = [
  "metrics-exporter-prometheus",
  "parking_lot",
@@ -325,8 +304,6 @@ dependencies = [
 [[package]]
 name = "amareleo-node-rest"
 version = "2.0.2"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "d5da44e4bff2764e8a64111a8e0c848f28b47fbcb143f5e72329786898fdaa47"
 dependencies = [
  "amareleo-node-consensus",
  "anyhow",
@@ -352,8 +329,6 @@ dependencies = [
 [[package]]
 name = "amareleo-node-sync"
 version = "2.0.2"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "b5e6423f8c1c32ffbf73d8e718c5b73d3f6a3fc10a12f67a7abd6f3f41a76651"
 dependencies = [
  "amareleo-node-sync-locators",
 ]
@@ -361,8 +336,6 @@ dependencies = [
 [[package]]
 name = "amareleo-node-sync-locators"
 version = "2.0.2"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "858426e6fd601a6a03d648bd5082ec0c10ed7f8695ee6c9c9520477730789efd"
 dependencies = [
  "anyhow",
  "indexmap",

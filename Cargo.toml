@@ -1,6 +1,6 @@
 [package]
 name = "amareleo"
-version = "2.2.0"
+version = "2.3.0"
 authors = ["The Amareleo Team <amareleo@windeveloper.com>"]
 description = "An Aleo test framework"
 homepage = "https://amareleo.com"
@@ -29,7 +29,7 @@ version = "1.0.79"
 
 [dependencies.amareleo-chain]
 # path= "../amareleo-chain"
-version = "=2.2.0"
+version = "=2.3.0"
 
 [build-dependencies.built]
 version = "0.7"
